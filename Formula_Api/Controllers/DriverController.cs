@@ -1,7 +1,6 @@
-using Formula_Api.Data;
+using Formula_Api.Core;
 using Formula_Api.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Formula_Api.Controllers
 {
@@ -9,17 +8,17 @@ namespace Formula_Api.Controllers
     [Route("[controller]")]
     public class DriverController : ControllerBase
     {
-        private readonly ApiDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public DriverController(ApiDbContext context)
+        public DriverController(IUnitOfWork unitOfWork)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpGet]
-        [Route(nameof(Get))]
-        public async Task<IActionResult> Get() => 
-            Ok(await  _context.Drivers.ToListAsync());
+        [Route(nameof(GetAll))]
+        public async Task<IActionResult> GetAll() => 
+            Ok(await _unitOfWork.Drivers.GetAll());
 
         [HttpGet]
         [Route(nameof(GetById))]
@@ -35,8 +34,8 @@ namespace Formula_Api.Controllers
         [Route(nameof(AddDriver))]
         public async Task<IActionResult> AddDriver(Driver newDriver)
         {
-            await _context.Drivers.AddAsync(newDriver);
-            await _context.SaveChangesAsync();
+            await _unitOfWork.Drivers.Add(newDriver);
+            await _unitOfWork.CompleteAsync();
             
             return Ok();
         }
@@ -48,11 +47,8 @@ namespace Formula_Api.Controllers
             var existDriver = await GetDriverByIdAsync(driver.Id);
             if (existDriver is null) return NotFound();
 
-            existDriver.Name = driver.Name;
-            existDriver.DriverNumber = driver.DriverNumber;
-            existDriver.Team = driver.Team;
-            
-            await _context.SaveChangesAsync(); 
+            await _unitOfWork.Drivers.Update(driver);
+            await _unitOfWork.CompleteAsync();
             
             return NoContent(); 
         }
@@ -64,11 +60,12 @@ namespace Formula_Api.Controllers
             var driver = await GetDriverByIdAsync(id);
             if (driver is null) return NotFound();
             
-            _context.Drivers.Remove(driver);
-            await _context.SaveChangesAsync();
+            await _unitOfWork.Drivers.Delete(driver);
+            await _unitOfWork.CompleteAsync();
             return NoContent();
         }
+
         private async Task<Driver?> GetDriverByIdAsync(int id) =>
-            await _context.Drivers.FirstOrDefaultAsync(d => d.Id == id);
+            await _unitOfWork.Drivers.GetById(id);
     }
 }

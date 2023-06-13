@@ -1,3 +1,4 @@
+using Formula_Api.Core;
 using Formula_Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,6 +13,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ApiDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
  
 var app = builder.Build();
 
